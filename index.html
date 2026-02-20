@@ -3,394 +3,294 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Реальный график Si-3.26 (MOEX) + DeepSeek AI</title>
+    <title>Si-3.26 (SiH6) Real Data | DeepSeek AI</title>
     <style>
-        /* Стили полностью идентичны предыдущей версии */
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #1e1f2b; color: #e0e0e0; margin: 0; padding: 20px; }
         .container { max-width: 1400px; margin: 0 auto; }
         h1 { color: #b0b7ca; font-weight: 400; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        
+        .status-bar { background: #2a2c39; padding: 10px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; font-size: 14px; color: #aaa; }
+        .status-ok { color: #4caf50; }
+        .status-error { color: #f44336; }
+
         .api-section { background: #2a2c39; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 15px; }
-        .api-input { flex: 1; min-width: 300px; background: #1e1f2b; border: 1px solid #444; color: white; padding: 12px 15px; border-radius: 6px; font-size: 14px; }
-        .api-input:focus { outline: none; border-color: #5f9ea0; }
-        button { background: #3a6ea5; border: none; color: white; padding: 12px 30px; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .api-input { flex: 1; min-width: 300px; background: #1e1f2b; border: 1px solid #444; color: white; padding: 12px 15px; border-radius: 6px; }
+        button { background: #3a6ea5; border: none; color: white; padding: 12px 30px; border-radius: 6px; font-weight: 600; cursor: pointer; }
         button:hover { background: #4d7db8; }
         button:disabled { background: #555; cursor: not-allowed; }
-        .chart-container { background: #2a2c39; padding: 20px; border-radius: 8px; margin-bottom: 20px; position: relative; }
+
+        .chart-container { background: #2a2c39; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
         #chart { width: 100%; height: 500px; }
-        .indicators-panel { background: #2a2c39; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 14px; }
+        
+        .indicators-panel { background: #2a2c39; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
         .indicator-card { background: #1e1f2b; padding: 15px; border-radius: 6px; border-left: 4px solid #5f9ea0; }
-        .indicator-card h3 { margin: 0 0 10px 0; color: #b0b7ca; font-size: 16px; font-weight: 400; }
+        .indicator-card h3 { margin: 0 0 10px 0; color: #b0b7ca; font-size: 16px; }
         .indicator-card .value { font-size: 22px; font-weight: 600; color: #d4d7e3; }
-        .indicator-card .detail { color: #888c9e; margin-top: 5px; }
+
         .analysis-result { background: #2a2c39; padding: 20px; border-radius: 8px; }
-        .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .result-header h2 { margin: 0; color: #b0b7ca; font-weight: 400; }
+        pre { background: #1e1f2b; padding: 20px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; color: #c9d1d9; font-family: 'Consolas', monospace; line-height: 1.6; }
         .loader { border: 3px solid #444; border-top: 3px solid #5f9ea0; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: inline-block; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        pre { background: #1e1f2b; padding: 20px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; color: #c9d1d9; font-family: 'Consolas', monospace; font-size: 14px; line-height: 1.6; margin: 0; }
-        .error-message { color: #f28b82; padding: 10px; background: #442326; border-radius: 4px; margin-bottom: 10px; }
-        .watermark { position: absolute; top: 70px; left: 80px; font-size: 24px; color: rgba(255,255,255,0.1); pointer-events: none; font-weight: bold; z-index: 1; }
-        footer { margin-top: 20px; text-align: center; color: #555a6b; font-size: 13px; }
     </style>
-    <!-- Подключаем библиотеку графиков -->
     <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>📈 Реальные данные Si-3.26 (MOEX) + анализ DeepSeek</h1>
+        <h1>📈 Реальный график Si-3.26 (SiH6) + DeepSeek AI</h1>
+
+        <div class="status-bar">
+            <span>Источник: <span id="srcStatus" class="status-ok">MOEX API (Direct)</span></span>
+            <span>Тикер: <b>SiH6</b></span>
+            <span>Свечей загружено: <span id="countStatus">0</span></span>
+        </div>
 
         <div class="api-section">
-            <input type="password" id="apiKey" class="api-input" placeholder="Введите ваш DeepSeek API ключ" value="">
-            <button id="analyzeBtn">🔍 Выполнить анализ</button>
+            <input type="password" id="apiKey" class="api-input" placeholder="DeepSeek API ключ" value="">
+            <button id="analyzeBtn">🔍 Анализ DeepSeek</button>
         </div>
 
         <div class="chart-container">
-            <div class="watermark">Si-3.26 (MOEX ISS)</div>
             <div id="chart"></div>
-            <div id="dataStatus" class="error-message" style="display: none;"></div>
         </div>
 
-        <div class="indicators-panel" id="indicatorsPanel">
-            <div class="indicator-card"><h3>Загрузка...</h3><div class="value">--</div></div>
-        </div>
+        <div class="indicators-panel" id="indicatorsPanel"></div>
 
         <div class="analysis-result">
-            <div class="result-header">
-                <h2>🧠 Анализ DeepSeek</h2>
-                <div id="loader" class="loader" style="display: none;"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h2 style="margin:0; color:#b0b7ca;">Прогноз</h2>
+                <div id="loader" class="loader" style="display:none;"></div>
             </div>
-            <pre id="analysisText">Нажмите "Выполнить анализ" после ввода API ключа.</pre>
+            <pre id="analysisText">Ожидание данных...</pre>
         </div>
-        <footer>
-            Источник данных: MOEX ISS (задержка 15 минут для неавторизованных пользователей).
-        </footer>
     </div>
 
     <script>
         (function() {
-            // --- Конфигурация ---
-            const SECURITY_ID = 'Si-3.26';
+            // Тикер Si-3.26 -> SiH6
+            const TICKER = 'SiH6'; 
             
-            // ---------- Функция загрузки реальных данных с MOEX через прокси ----------
-            async function fetchRealMoexData() {
-                const statusDiv = document.getElementById('dataStatus');
-                
+            let chart = null;
+            let candleSeries = null;
+            let rawData = []; // Здесь будут реальные данные
+
+            // 1. Функция получения РЕАЛЬНЫХ данных с MOEX
+            async function loadRealData() {
+                const chartDiv = document.getElementById('chart');
+                chartDiv.innerHTML = '<div style="color:#888; text-align:center; padding-top:200px;">Загрузка данных с MOEX ISS...</div>';
+
                 try {
-                    // Рассчитываем даты: последние 7 дней (чтобы получить ~200 часовых свечей)
-                    const endDate = new Date();
-                    const startDate = new Date();
-                    startDate.setDate(startDate.getDate() - 7);
+                    // API MOEX для фьючерсов (FORTS), часовые свечи (interval=60)
+                    // verified=true чтобы гарантированно получить торговый тикер, если есть
+                    const url = `https://iss.moex.com/iss/engines/futures/markets/forts/securities/${TICKER}/candles.json?interval=60&reverse=true`;
                     
-                    // Форматируем даты в формат YYYY-MM-DD
-                    const formatDate = (date) => {
-                        return date.toISOString().split('T')[0];
+                    const response = await fetch(url);
+                    const json = await response.json();
+
+                    const columns = json.candles.columns;
+                    const data = json.candles.data;
+
+                    if (!data || data.length === 0) {
+                        chartDiv.innerHTML = `<div style="color:#f44336; text-align:center; padding-top:200px;">
+                            <h3>Нет данных по тикеру ${TICKER}</h3>
+                            <p>Возможно, торги еще не начались или тикер не активен.</p>
+                        </div>`;
+                        return false;
+                    }
+
+                    // Парсинг
+                    const idx = {
+                        open: columns.indexOf('open'),
+                        close: columns.indexOf('close'),
+                        high: columns.indexOf('high'),
+                        low: columns.indexOf('low'),
+                        volume: columns.indexOf('volume'),
+                        begin: columns.indexOf('begin')
                     };
-                    
-                    const from = formatDate(startDate);
-                    const till = formatDate(endDate);
-                    
-                    // Формируем URL для запроса к MOEX ISS API
-                    // Эндпоинт для свечей фьючерсов:
-                    // /engines/futures/markets/forts/boards/forts/securities/{secid}/candles
-                    // Параметры: from, till, interval=60 (часовые свечи)
-                    const moexUrl = `https://iss.moex.com/iss/engines/futures/markets/forts/boards/forts/securities/${SECURITY_ID}/candles.json?from=${from}&till=${till}&interval=60&iss.only=candles`;
-                    
-                    // Используем наш прокси для обхода CORS
-                    const response = await fetch(`/api/proxy?url=${encodeURIComponent(moexUrl)}`);
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    
-                    // Проверяем наличие данных
-                    if (!data.candles || !data.candles.data || data.candles.data.length === 0) {
-                        throw new Error('Нет данных за указанный период (возможно, нет торгов)');
-                    }
-                    
-                    // Преобразуем данные MOEX в формат для Lightweight Charts
-                    // Формат данных MOEX: [open, close, high, low, value, volume, begin]
-                    const candles = data.candles.data.map(candle => ({
-                        time: Math.floor(new Date(candle[6]).getTime() / 1000), // begin -> timestamp
-                        open: candle[0],
-                        high: candle[2],
-                        low: candle[3],
-                        close: candle[1],
-                        volume: candle[5]
-                    }));
-                    
-                    // Сортируем по времени (на случай, если API вернёт не по порядку)
-                    candles.sort((a, b) => a.time - b.time);
-                    
-                    statusDiv.style.display = 'none';
-                    return candles;
-                    
-                } catch (error) {
-                    console.error('Ошибка загрузки данных MOEX:', error);
-                    statusDiv.style.display = 'block';
-                    statusDiv.textContent = `❌ Ошибка загрузки данных: ${error.message}. Используются тестовые данные.`;
-                    
-                    // Возвращаем тестовые данные как запасной вариант
-                    return generateFallbackData();
+
+                    // Преобразуем в формат для графика
+                    // MOEX отдает время в MSK (UTC+3). Графику нужно UTC.
+                    rawData = data.map(row => {
+                        // Строка времени "2024-01-01 10:00:00" -> таймстемпа UTC
+                        const dateStr = row[idx.begin]; 
+                        // Добавляем +03:00 чтобы указать что это МСК, затем парсим
+                        const mskDate = new Date(dateStr.replace(' ', 'T') + '+03:00');
+                        
+                        return {
+                            time: Math.floor(mskDate.getTime() / 1000),
+                            open: parseFloat(row[idx.open]),
+                            high: parseFloat(row[idx.high]),
+                            low: parseFloat(row[idx.low]),
+                            close: parseFloat(row[idx.close]),
+                            volume: parseFloat(row[idx.volume])
+                        };
+                    }).reverse(); // MOEX отдает новые первыми, разворачиваем
+
+                    document.getElementById('countStatus').innerText = rawData.length;
+                    return true;
+
+                } catch (e) {
+                    console.error(e);
+                    chartDiv.innerHTML = `<div style="color:#f44336; text-align:center;">Ошибка сети при запросе к MOEX.<br>${e.message}</div>`;
+                    return false;
                 }
             }
 
-            // ---------- Запасной генератор на случай ошибки ----------
-            function generateFallbackData() {
-                const data = [];
-                const now = new Date();
-                const nowHourStart = new Date(now);
-                nowHourStart.setMinutes(0, 0, 0);
+            // 2. Расчет индикаторов (на основе rawData)
+            function calcIndicators() {
+                if (rawData.length < 50) return { sma20: [], sma50: [], rsi: [], macd: {} };
+
+                // SMA
+                const sma20 = [], sma50 = [];
+                for (let i = 0; i < rawData.length; i++) {
+                    if (i < 19) sma20.push(null);
+                    else {
+                        let sum = 0; for(let j=i-19; j<=i; j++) sum+=rawData[j].close;
+                        sma20.push(sum/20);
+                    }
+                    if (i < 49) sma50.push(null);
+                    else {
+                        let sum = 0; for(let j=i-49; j<=i; j++) sum+=rawData[j].close;
+                        sma50.push(sum/50);
+                    }
+                }
+
+                // RSI (14)
+                const rsi = [];
+                for (let i = 0; i < rawData.length; i++) {
+                    if (i < 14) { rsi.push(null); continue; }
+                    let gain=0, loss=0;
+                    for(let j=i-13; j<=i; j++) {
+                        let diff = rawData[j].close - rawData[j-1].close;
+                        if (diff > 0) gain+=diff; else loss-=diff;
+                    }
+                    let rs = gain/14 / (loss/14 || 0.0001);
+                    rsi.push(100 - 100/(1+rs));
+                }
+
+                // MACD
+                // (Упрощенный EMA расчет для примера)
+                const macd = { line: [], signal: [] };
+                const ema12 = [], ema26 = [];
+                let k12 = 2/13, k26 = 2/27;
                 
-                let currentPrice = 92500;
+                // Инициализация EMA
+                let sum12=0, sum26=0;
+                for(let i=0; i<26; i++) {
+                    if(i<12) sum12+=rawData[i].close;
+                    sum26+=rawData[i].close;
+                }
+                ema12[11] = sum12/12;
+                ema26[25] = sum26/26;
+
+                for(let i=12; i<rawData.length; i++) {
+                    ema12[i] = rawData[i].close * k12 + ema12[i-1] * (1-k12);
+                    if(i>=26) ema26[i] = rawData[i].close * k26 + ema26[i-1] * (1-k26);
+                    else ema26[i] = null;
+                    if(i>=25) macd.line.push(ema12[i] - ema26[i]);
+                    else macd.line.push(null);
+                }
+
+                return { sma20, sma50, rsi, macd };
+            }
+
+            // 3. Отрисовка
+            function drawChart(inds) {
+                const container = document.getElementById('chart');
+                container.innerHTML = '';
                 
-                for (let i = 0; i < 100; i++) {
-                    const timeOffset = (99 - i) * 3600 * 1000;
-                    const candleDate = new Date(nowHourStart.getTime() - timeOffset);
-                    const timestamp = Math.floor(candleDate.getTime() / 1000);
-                    
-                    const change = (Math.random() - 0.48) * 200;
-                    const close = currentPrice + change;
-                    const high = Math.max(currentPrice, close) + Math.random() * 100;
-                    const low = Math.min(currentPrice, close) - Math.random() * 100;
-                    
-                    data.push({
-                        time: timestamp,
-                        open: currentPrice,
-                        high: high,
-                        low: low,
-                        close: close,
-                    });
-                    
-                    currentPrice = close;
-                }
-                return data;
-            }
+                chart = LightweightCharts.createChart(container, {
+                    width: container.clientWidth,
+                    height: 500,
+                    layout: { backgroundColor: '#2a2c39', textColor: '#d1d4dc' },
+                    grid: { vertLines: { color: '#404254' }, horzLines: { color: '#404254' } },
+                    timeScale: { timeVisible: true }
+                });
 
-            // ---------- Индикаторы (без изменений) ----------
-            function calculateSMA(data, period) {
-                let sma = [];
-                for (let i = 0; i < data.length; i++) {
-                    if (i < period - 1) { sma.push(null); continue; }
-                    let sum = 0;
-                    for (let j = i - period + 1; j <= i; j++) sum += data[j].close;
-                    sma.push(sum / period);
-                }
-                return sma;
-            }
+                candleSeries = chart.addCandlestickSeries({
+                    upColor: '#4caf50', downColor: '#f44336',
+                    borderUpColor: '#4caf50', borderDownColor: '#f44336',
+                    wickUpColor: '#4caf50', wickDownColor: '#f44336'
+                });
+                candleSeries.setData(rawData);
 
-            function calculateRSI(data, period = 14) {
-                let rsi = [];
-                let gains = [], losses = [];
-                for (let i = 1; i < data.length; i++) {
-                    let change = data[i].close - data[i-1].close;
-                    gains.push(change > 0 ? change : 0);
-                    losses.push(change < 0 ? -change : 0);
-                }
-                for (let i = 0; i < data.length; i++) {
-                    if (i < period) { rsi.push(null); continue; }
-                    let avgGain = 0, avgLoss = 0;
-                    for (let j = i - period; j < i; j++) {
-                        avgGain += gains[j];
-                        avgLoss += losses[j];
-                    }
-                    avgGain /= period; avgLoss /= period;
-                    if (avgLoss === 0) rsi.push(100);
-                    else rsi.push(100 - (100 / (1 + avgGain / avgLoss)));
-                }
-                return rsi;
-            }
-
-            function calculateMACD(data, fast = 12, slow = 26, signal = 9) {
-                let emaFast = [], emaSlow = [], macdLine = [], signalLine = [], histogram = [];
-                let sumFast = 0, sumSlow = 0;
-                for (let i = 0; i < slow; i++) {
-                    if (i < fast) sumFast += data[i].close;
-                    sumSlow += data[i].close;
-                }
-                emaFast[fast-1] = sumFast / fast;
-                emaSlow[slow-1] = sumSlow / slow;
-                const kFast = 2 / (fast + 1), kSlow = 2 / (slow + 1);
-                for (let i = fast; i < data.length; i++) emaFast[i] = data[i].close * kFast + emaFast[i-1] * (1 - kFast);
-                for (let i = slow; i < data.length; i++) emaSlow[i] = data[i].close * kSlow + emaSlow[i-1] * (1 - kSlow);
-                for (let i = 0; i < data.length; i++) {
-                    if (i < slow) macdLine.push(null);
-                    else macdLine.push(emaFast[i] - emaSlow[i]);
-                }
-                for (let i = 0; i < data.length; i++) {
-                    if (i < slow + signal - 1) { signalLine.push(null); continue; }
-                    if (i === slow + signal - 1) {
-                        let sum = 0;
-                        for (let j = i - signal + 1; j <= i; j++) sum += macdLine[j];
-                        signalLine.push(sum / signal);
-                    } else {
-                        let prevSignal = signalLine[i-1];
-                        signalLine.push(macdLine[i] * (2/(signal+1)) + prevSignal * (1 - 2/(signal+1)));
-                    }
-                }
-                for (let i = 0; i < data.length; i++) {
-                    if (signalLine[i] === null) histogram.push(null);
-                    else histogram.push(macdLine[i] - signalLine[i]);
-                }
-                return { macdLine, signalLine, histogram };
-            }
-
-            // ---------- Основная логика ----------
-            let rawData = [];
-            let sma20 = [], sma50 = [], rsi = [], macd = { macdLine: [], signalLine: [], histogram: [] };
-
-            // Функция обновления панели индикаторов
-            function updateIndicatorsPanel() {
-                if (rawData.length === 0) return;
+                // SMA Lines
+                const line20 = chart.addLineSeries({ color: '#FFD700', lineWidth: 2, title: 'SMA 20' });
+                const line50 = chart.addLineSeries({ color: '#00BFFF', lineWidth: 2, title: 'SMA 50' });
                 
-                const last = rawData[rawData.length - 1];
-                const prev = rawData[rawData.length - 2] || last;
-                const panel = document.getElementById('indicatorsPanel');
-                const lastRsi = rsi[rsi.length - 1]?.toFixed(2) || 'N/A';
-                const lastMacd = macd.macdLine[macd.macdLine.length - 1]?.toFixed(2) || 'N/A';
-                const lastSignal = macd.signalLine[macd.signalLine.length - 1]?.toFixed(2) || 'N/A';
-                const lastHist = macd.histogram[macd.histogram.length - 1]?.toFixed(2) || 'N/A';
-                const sma20Val = sma20[sma20.length - 1]?.toFixed(2) || 'N/A';
-                const sma50Val = sma50[sma50.length - 1]?.toFixed(2) || 'N/A';
+                const d20 = [], d50 = [];
+                rawData.forEach((d, i) => {
+                    if(inds.sma20[i]) d20.push({time: d.time, value: inds.sma20[i]});
+                    if(inds.sma50[i]) d50.push({time: d.time, value: inds.sma50[i]});
+                });
+                line20.setData(d20);
+                line50.setData(d50);
 
-                panel.innerHTML = `
-                    <div class="indicator-card"><h3>Цена (Si)</h3><div class="value">${last.close.toFixed(2)}</div><div class="detail">Изм: ${(last.close - prev.close).toFixed(2)}</div></div>
-                    <div class="indicator-card"><h3>SMA 20 / 50</h3><div class="value">${sma20Val} / ${sma50Val}</div><div class="detail">${sma20Val > sma50Val ? '🐂 Бычье' : '🐻 Медвежье'} пересечение</div></div>
-                    <div class="indicator-card"><h3>RSI (14)</h3><div class="value">${lastRsi}</div><div class="detail">${lastRsi > 70 ? 'Перекупленность' : lastRsi < 30 ? 'Перепроданность' : 'Нейтрально'}</div></div>
-                    <div class="indicator-card"><h3>MACD</h3><div class="value">${lastMacd}</div><div class="detail">Сигнал: ${lastSignal} | Гист: ${lastHist}</div></div>
+                chart.timeScale().fitContent();
+                
+                // Update Panel
+                const last = rawData[rawData.length-1];
+                const prev = rawData[rawData.length-2];
+                const lRsi = inds.rsi[inds.rsi.length-1];
+                
+                document.getElementById('indicatorsPanel').innerHTML = `
+                    <div class="indicator-card"><h3>Close</h3><div class="value">${last.close.toFixed(2)}</div></div>
+                    <div class="indicator-card"><h3>SMA 20</h3><div class="value">${inds.sma20[inds.sma20.length-1]?.toFixed(2) || '-'}</div></div>
+                    <div class="indicator-card"><h3>RSI (14)</h3><div class="value">${lRsi?.toFixed(2) || '-'}</div></div>
+                    <div class="indicator-card"><h3>Change</h3><div class="value" style="color:${last.close > prev.close ? '#4caf50' : '#f44336'}">${(last.close - prev.close).toFixed(2)}</div></div>
                 `;
             }
 
-            // Функция отрисовки графика
-            function drawChart() {
-                if (typeof LightweightCharts === 'undefined') {
-                    document.getElementById('chart').innerHTML = '<div class="error-message">Ошибка: Библиотека графиков не загружена.</div>';
-                    return;
-                }
+            // 4. DeepSeek
+            document.getElementById('analyzeBtn').addEventListener('click', async () => {
+                const key = document.getElementById('apiKey').value;
+                if(!key) return alert("Введите ключ");
+
+                const btn = document.getElementById('analyzeBtn');
+                const txt = document.getElementById('analysisText');
+                const loader = document.getElementById('loader');
                 
-                try {
-                    const chartContainer = document.getElementById('chart');
-                    chartContainer.innerHTML = ''; // Очищаем перед созданием нового графика
-                    
-                    const chart = LightweightCharts.createChart(chartContainer, {
-                        width: chartContainer.clientWidth,
-                        height: 500,
-                        layout: { backgroundColor: '#2a2c39', textColor: '#d1d4dc' },
-                        grid: { vertLines: { color: '#404254' }, horzLines: { color: '#404254' } },
-                        timeScale: { timeVisible: true, secondsVisible: false },
-                    });
+                btn.disabled = true; loader.style.display = 'inline-block';
+                txt.innerText = "Анализирую реальный рынок...";
 
-                    const candlestickSeries = chart.addCandlestickSeries({
-                        upColor: '#4caf50', downColor: '#f44336',
-                        borderDownColor: '#f44336', borderUpColor: '#4caf50',
-                        wickDownColor: '#f44336', wickUpColor: '#4caf50',
-                        title: 'Si-3.26 (реальные данные)'
-                    });
-                    candlestickSeries.setData(rawData);
-
-                    // SMA линии
-                    const sma20Line = chart.addLineSeries({ color: '#FFD700', lineWidth: 2, title: 'SMA20' });
-                    const sma50Line = chart.addLineSeries({ color: '#00BFFF', lineWidth: 2, title: 'SMA50' });
-                    
-                    const sma20Data = [], sma50Data = [];
-                    rawData.forEach((d, i) => {
-                        if (sma20[i] !== null) sma20Data.push({ time: d.time, value: sma20[i] });
-                        if (sma50[i] !== null) sma50Data.push({ time: d.time, value: sma50[i] });
-                    });
-                    sma20Line.setData(sma20Data);
-                    sma50Line.setData(sma50Data);
-
-                    chart.timeScale().fitContent();
-                    window.addEventListener('resize', () => chart.applyOptions({ width: chartContainer.clientWidth }));
-                } catch (e) {
-                    console.error(e);
-                    document.getElementById('chart').innerHTML = '<div class="error-message">Ошибка рендеринга: ' + e.message + '</div>';
-                }
-            }
-
-            // ---------- Инициализация: загрузка данных и отрисовка ----------
-            async function initApp() {
-                const panel = document.getElementById('indicatorsPanel');
-                panel.innerHTML = '<div class="indicator-card"><h3>Загрузка данных с MOEX...</h3><div class="value">⏳</div></div>';
-                
-                rawData = await fetchRealMoexData();
-                
-                // Рассчитываем индикаторы
-                sma20 = calculateSMA(rawData, 20);
-                sma50 = calculateSMA(rawData, 50);
-                rsi = calculateRSI(rawData, 14);
-                macd = calculateMACD(rawData, 12, 26, 9);
-                
-                drawChart();
-                updateIndicatorsPanel();
-            }
-
-            // Запускаем инициализацию
-            initApp();
-
-            // ---------- API Запрос (через прокси) ----------
-            function buildAnalysisPrompt() {
-                const recent = rawData.slice(-60);
-                const headers = ['Time', 'Open', 'High', 'Low', 'Close', 'SMA20', 'SMA50', 'RSI', 'MACD', 'Signal', 'Histogram'];
-                let csvRows = [headers.join(',')];
-
-                recent.forEach((d, idx) => {
-                    const globalIdx = rawData.length - 60 + idx;
-                    const row = [
-                        new Date(d.time * 1000).toISOString().replace('T', ' ').substring(0, 19),
-                        d.open.toFixed(2), d.high.toFixed(2), d.low.toFixed(2), d.close.toFixed(2),
-                        sma20[globalIdx]?.toFixed(2) || '', sma50[globalIdx]?.toFixed(2) || '',
-                        rsi[globalIdx]?.toFixed(2) || '', macd.macdLine[globalIdx]?.toFixed(2) || '',
-                        macd.signalLine[globalIdx]?.toFixed(2) || '', macd.histogram[globalIdx]?.toFixed(2) || ''
-                    ];
-                    csvRows.push(row.join(','));
+                // Формируем CSV из реальных данных (последние 30 свечей)
+                const recent = rawData.slice(-30);
+                let csv = "Time,Open,High,Low,Close,Volume\n";
+                recent.forEach(d => {
+                    csv += `${new Date(d.time*1000).toISOString()},${d.open},${d.high},${d.low},${d.close},${d.volume}\n`;
                 });
 
-                return `Проанализируй фьючерс Si-3.26 (USD/RUB) по часовым данным с MOEX. Вот последние 60 свечей с индикаторами:\n\`\`\`csv\n${csvRows.join('\n')}\n\`\`\`\nОпиши текущую рыночную ситуацию, тренд, уровни поддержки/сопротивления и возможные торговые сигналы.`;
-            }
-
-            document.getElementById('analyzeBtn').addEventListener('click', async function() {
-                const apiKey = document.getElementById('apiKey').value.trim();
-                if (!apiKey) {
-                    document.getElementById('analysisText').innerText = '❌ Введите API ключ.';
-                    return;
-                }
-
-                const loader = document.getElementById('loader');
-                const analysisDiv = document.getElementById('analysisText');
-                loader.style.display = 'inline-block';
-                analysisDiv.innerText = '⏳ Анализирую реальные данные Si-3.26...';
-
                 try {
-                    const response = await fetch('/api/proxy', {
+                    const res = await fetch('/api/proxy', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}`
-                        },
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
                         body: JSON.stringify({
                             model: 'deepseek-chat',
-                            messages: [
-                                { role: 'system', content: 'Ты опытный трейдер на рынке MOEX. Отвечай на русском, подробно.' },
-                                { role: 'user', content: buildAnalysisPrompt() }
-                            ],
-                            temperature: 0.3
+                            messages: [{
+                                role: 'user', 
+                                content: `Я торгую фьючерс SiH6 (Si-3.26). Вот реальные часовые свечи с MOEX:\n${csv}\nДай краткий технический анализ.`
+                            }]
                         })
                     });
-
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data.error?.message || JSON.stringify(data));
-                    
-                    analysisDiv.innerText = data.choices[0].message.content;
-                } catch (error) {
-                    console.error(error);
-                    analysisDiv.innerText = `❌ Ошибка: ${error.message}`;
+                    const data = await res.json();
+                    if(data.error) throw new Error(data.error.message);
+                    txt.innerText = data.choices[0].message.content;
+                } catch(e) {
+                    txt.innerText = "Ошибка: " + e.message;
                 } finally {
-                    loader.style.display = 'none';
+                    btn.disabled = false; loader.style.display = 'none';
                 }
             });
+
+            // INIT
+            (async () => {
+                const success = await loadRealData();
+                if (success) {
+                    const indicators = calcIndicators();
+                    drawChart(indicators);
+                }
+            })();
+
         })();
     </script>
 </body>
