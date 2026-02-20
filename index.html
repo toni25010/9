@@ -5,34 +5,167 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Анализ Si-3.26 с DeepSeek API (через прокси Vercel)</title>
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: #1e1f2b; color: #e0e0e0; margin: 0; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; }
-        h1 { color: #b0b7ca; font-weight: 400; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .api-section { background: #2a2c39; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 15px; }
-        .api-input { flex: 1; min-width: 300px; background: #1e1f2b; border: 1px solid #444; color: white; padding: 12px 15px; border-radius: 6px; font-size: 14px; }
-        .api-input:focus { outline: none; border-color: #5f9ea0; }
-        button { background: #3a6ea5; border: none; color: white; padding: 12px 30px; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-        button:hover { background: #4d7db8; }
-        button:disabled { background: #555; cursor: not-allowed; }
-        .chart-container { background: #2a2c39; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        #chart { width: 100%; height: 500px; }
-        .indicators-panel { background: #2a2c39; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 14px; }
-        .indicator-card { background: #1e1f2b; padding: 15px; border-radius: 6px; border-left: 4px solid #5f9ea0; }
-        .indicator-card h3 { margin: 0 0 10px 0; color: #b0b7ca; font-size: 16px; font-weight: 400; }
-        .indicator-card .value { font-size: 22px; font-weight: 600; color: #d4d7e3; }
-        .indicator-card .detail { color: #888c9e; margin-top: 5px; }
-        .analysis-result { background: #2a2c39; padding: 20px; border-radius: 8px; }
-        .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .result-header h2 { margin: 0; color: #b0b7ca; font-weight: 400; }
-        .loader { border: 3px solid #444; border-top: 3px solid #5f9ea0; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: inline-block; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        pre { background: #1e1f2b; padding: 20px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; color: #c9d1d9; font-family: 'Consolas', monospace; font-size: 14px; line-height: 1.6; margin: 0; }
-        .error-message { color: #f28b82; padding: 10px; background: #442326; border-radius: 4px; }
-        footer { margin-top: 20px; text-align: center; color: #555a6b; font-size: 13px; }
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: #1e1f2b;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #b0b7ca;
+            font-weight: 400;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+        .api-section {
+            background: #2a2c39;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 15px;
+        }
+        .api-input {
+            flex: 1;
+            min-width: 300px;
+            background: #1e1f2b;
+            border: 1px solid #444;
+            color: white;
+            padding: 12px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .api-input:focus {
+            outline: none;
+            border-color: #5f9ea0;
+        }
+        button {
+            background: #3a6ea5;
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            letter-spacing: 0.5px;
+        }
+        button:hover {
+            background: #4d7db8;
+        }
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        .chart-container {
+            background: #2a2c39;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        #chart {
+            width: 100%;
+            height: 500px;
+        }
+        .indicators-panel {
+            background: #2a2c39;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            font-size: 14px;
+        }
+        .indicator-card {
+            background: #1e1f2b;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #5f9ea0;
+        }
+        .indicator-card h3 {
+            margin: 0 0 10px 0;
+            color: #b0b7ca;
+            font-size: 16px;
+            font-weight: 400;
+        }
+        .indicator-card .value {
+            font-size: 22px;
+            font-weight: 600;
+            color: #d4d7e3;
+        }
+        .indicator-card .detail {
+            color: #888c9e;
+            margin-top: 5px;
+        }
+        .analysis-result {
+            background: #2a2c39;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .result-header h2 {
+            margin: 0;
+            color: #b0b7ca;
+            font-weight: 400;
+        }
+        .loader {
+            border: 3px solid #444;
+            border-top: 3px solid #5f9ea0;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        pre {
+            background: #1e1f2b;
+            padding: 20px;
+            border-radius: 6px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #c9d1d9;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0;
+        }
+        .error-message {
+            color: #f28b82;
+            padding: 10px;
+            background: #442326;
+            border-radius: 4px;
+        }
+        footer {
+            margin-top: 20px;
+            text-align: center;
+            color: #555a6b;
+            font-size: 13px;
+        }
     </style>
-    <!-- ИСПРАВЛЕНО: Используем unpkg с фиксированной версией 4.1.0 -->
-    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <!-- Используем стабильную версию 4.1.1 с jsdelivr (последняя версия v4 с совместимым API) -->
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
     <div class="container">
@@ -48,7 +181,7 @@
         </div>
 
         <div class="indicators-panel" id="indicatorsPanel">
-            <!-- Заполняется скриптом -->
+            <!-- будут заполнены скриптом -->
         </div>
 
         <div class="analysis-result">
@@ -65,21 +198,24 @@
 
     <script>
         (function() {
-            // ---------- Генерация тестовых данных ----------
+            // ---------- Генерация тестовых данных для Si-3.26 ----------
             function generateSampleData() {
                 const data = [];
-                const startTime = Math.floor(Date.now() / 1000) - 200 * 3600;
-                let close = 92_500;
+                const startTime = Math.floor(Date.now() / 1000) - 200 * 3600; // 200 часов назад
+                let close = 92_500; // начальная цена около 92500
                 for (let i = 0; i < 200; i++) {
-                    const time = startTime + i * 3600;
+                    const time = startTime + i * 3600; // каждый час
                     const volatility = 300 + Math.random() * 400;
                     const open = close;
                     const change = (Math.random() - 0.5) * volatility;
                     close = open + change;
-                    if (i > 80 && i < 120) close += 20;
-                    if (i > 130 && i < 160) close -= 25;
+                    // Добавляем трендовые участки
+                    if (i > 80 && i < 120) close += 20;   // восходящий тренд
+                    if (i > 130 && i < 160) close -= 25;   // нисходящий тренд
+                    // Случайный хай/лоу с учетом свечи
                     const high = Math.max(open, close) + Math.random() * volatility * 0.7;
                     const low = Math.min(open, close) - Math.random() * volatility * 0.7;
+                    // Объем (случайный)
                     const volume = Math.floor(5000 + Math.random() * 20000);
                     data.push({
                         time: time,
@@ -93,13 +229,18 @@
                 return data;
             }
 
-            // ---------- Индикаторы ----------
+            // ---------- Технические индикаторы ----------
             function calculateSMA(data, period) {
                 let sma = [];
                 for (let i = 0; i < data.length; i++) {
-                    if (i < period - 1) { sma.push(null); continue; }
+                    if (i < period - 1) {
+                        sma.push(null);
+                        continue;
+                    }
                     let sum = 0;
-                    for (let j = i - period + 1; j <= i; j++) sum += data[j].close;
+                    for (let j = i - period + 1; j <= i; j++) {
+                        sum += data[j].close;
+                    }
                     sma.push(sum / period);
                 }
                 return sma;
@@ -114,21 +255,30 @@
                     losses.push(change < 0 ? -change : 0);
                 }
                 for (let i = 0; i < data.length; i++) {
-                    if (i < period) { rsi.push(null); continue; }
+                    if (i < period) {
+                        rsi.push(null);
+                        continue;
+                    }
                     let avgGain = 0, avgLoss = 0;
                     for (let j = i - period; j < i; j++) {
                         avgGain += gains[j];
                         avgLoss += losses[j];
                     }
-                    avgGain /= period; avgLoss /= period;
-                    if (avgLoss === 0) rsi.push(100);
-                    else rsi.push(100 - (100 / (1 + avgGain / avgLoss)));
+                    avgGain /= period;
+                    avgLoss /= period;
+                    if (avgLoss === 0) {
+                        rsi.push(100);
+                    } else {
+                        let rs = avgGain / avgLoss;
+                        rsi.push(100 - (100 / (1 + rs)));
+                    }
                 }
                 return rsi;
             }
 
             function calculateMACD(data, fast = 12, slow = 26, signal = 9) {
                 let emaFast = [], emaSlow = [], macdLine = [], signalLine = [], histogram = [];
+                // Первые значения SMA как начальные EMA
                 let sumFast = 0, sumSlow = 0;
                 for (let i = 0; i < slow; i++) {
                     if (i < fast) sumFast += data[i].close;
@@ -136,24 +286,41 @@
                 }
                 emaFast[fast-1] = sumFast / fast;
                 emaSlow[slow-1] = sumSlow / slow;
-                const kFast = 2 / (fast + 1), kSlow = 2 / (slow + 1);
-                for (let i = fast; i < data.length; i++) emaFast[i] = data[i].close * kFast + emaFast[i-1] * (1 - kFast);
-                for (let i = slow; i < data.length; i++) emaSlow[i] = data[i].close * kSlow + emaSlow[i-1] * (1 - kSlow);
-                for (let i = 0; i < data.length; i++) {
-                    if (i < slow) macdLine.push(null);
-                    else macdLine.push(emaFast[i] - emaSlow[i]);
+                // EMA формула
+                const kFast = 2 / (fast + 1);
+                const kSlow = 2 / (slow + 1);
+                for (let i = fast; i < data.length; i++) {
+                    emaFast[i] = data[i].close * kFast + emaFast[i-1] * (1 - kFast);
                 }
+                for (let i = slow; i < data.length; i++) {
+                    emaSlow[i] = data[i].close * kSlow + emaSlow[i-1] * (1 - kSlow);
+                }
+                // MACD линия
                 for (let i = 0; i < data.length; i++) {
-                    if (i < slow + signal - 1) { signalLine.push(null); continue; }
+                    if (i < slow) {
+                        macdLine.push(null);
+                    } else {
+                        macdLine.push(emaFast[i] - emaSlow[i]);
+                    }
+                }
+                // Сигнальная линия (EMA от MACD)
+                for (let i = 0; i < data.length; i++) {
+                    if (i < slow + signal - 1) {
+                        signalLine.push(null);
+                        continue;
+                    }
                     if (i === slow + signal - 1) {
                         let sum = 0;
-                        for (let j = i - signal + 1; j <= i; j++) sum += macdLine[j];
+                        for (let j = i - signal + 1; j <= i; j++) {
+                            sum += macdLine[j];
+                        }
                         signalLine.push(sum / signal);
                     } else {
                         let prevSignal = signalLine[i-1];
                         signalLine.push(macdLine[i] * (2/(signal+1)) + prevSignal * (1 - 2/(signal+1)));
                     }
                 }
+                // Гистограмма
                 for (let i = 0; i < data.length; i++) {
                     if (signalLine[i] === null) histogram.push(null);
                     else histogram.push(macdLine[i] - signalLine[i]);
@@ -161,13 +328,14 @@
                 return { macdLine, signalLine, histogram };
             }
 
-            // ---------- Основная логика ----------
+            // ---------- Инициализация данных и графика ----------
             const rawData = generateSampleData();
             const sma20 = calculateSMA(rawData, 20);
             const sma50 = calculateSMA(rawData, 50);
             const rsi = calculateRSI(rawData, 14);
             const macd = calculateMACD(rawData, 12, 26, 9);
 
+            // Функция обновления панели индикаторов
             function updateIndicatorsPanel() {
                 const last = rawData[rawData.length - 1];
                 const prev = rawData[rawData.length - 2];
@@ -180,38 +348,74 @@
                 const sma50Val = sma50[sma50.length - 1]?.toFixed(2) || 'N/A';
 
                 panel.innerHTML = `
-                    <div class="indicator-card"><h3>Цена закрытия</h3><div class="value">${last.close.toFixed(2)}</div><div class="detail">Изм: ${(last.close - prev.close).toFixed(2)}</div></div>
-                    <div class="indicator-card"><h3>SMA 20 / 50</h3><div class="value">${sma20Val} / ${sma50Val}</div><div class="detail">${sma20Val > sma50Val ? '🐂 Бычье' : '🐻 Медвежье'} пересечение</div></div>
-                    <div class="indicator-card"><h3>RSI (14)</h3><div class="value">${lastRsi}</div><div class="detail">${lastRsi > 70 ? 'Перекупленность' : lastRsi < 30 ? 'Перепроданность' : 'Нейтрально'}</div></div>
-                    <div class="indicator-card"><h3>MACD</h3><div class="value">${lastMacd}</div><div class="detail">Сигнал: ${lastSignal} | Гист: ${lastHist}</div></div>
+                    <div class="indicator-card">
+                        <h3>Цена закрытия</h3>
+                        <div class="value">${last.close.toFixed(2)}</div>
+                        <div class="detail">Изм: ${(last.close - prev.close).toFixed(2)}</div>
+                    </div>
+                    <div class="indicator-card">
+                        <h3>SMA 20 / 50</h3>
+                        <div class="value">${sma20Val} / ${sma50Val}</div>
+                        <div class="detail">${sma20Val > sma50Val ? '🐂 Бычье' : '🐻 Медвежье'} пересечение</div>
+                    </div>
+                    <div class="indicator-card">
+                        <h3>RSI (14)</h3>
+                        <div class="value">${lastRsi}</div>
+                        <div class="detail">${lastRsi > 70 ? 'Перекупленность' : lastRsi < 30 ? 'Перепроданность' : 'Нейтрально'}</div>
+                    </div>
+                    <div class="indicator-card">
+                        <h3>MACD</h3>
+                        <div class="value">${lastMacd}</div>
+                        <div class="detail">Сигнал: ${lastSignal} | Гист: ${lastHist}</div>
+                    </div>
                 `;
             }
 
-            // Инициализация графика
+            // Проверка, загрузилась ли библиотека Lightweight Charts
             if (typeof LightweightCharts === 'undefined') {
-                document.getElementById('chart').innerHTML = '<div class="error-message">Ошибка: не удалось загрузить библиотеку графиков. Проверьте интернет.</div>';
+                document.getElementById('chart').innerHTML = '<div class="error-message">Ошибка: не удалось загрузить библиотеку графиков. Проверьте подключение к интернету или попробуйте другой CDN.</div>';
             } else {
-                try {
+                // Отрисовка графика
+                function drawChart() {
                     const chartContainer = document.getElementById('chart');
                     const chart = LightweightCharts.createChart(chartContainer, {
                         width: chartContainer.clientWidth,
                         height: 500,
-                        layout: { backgroundColor: '#2a2c39', textColor: '#d1d4dc' },
-                        grid: { vertLines: { color: '#404254' }, horzLines: { color: '#404254' } },
-                        timeScale: { timeVisible: true, secondsVisible: false },
+                        layout: {
+                            background: { type: 'solid', color: '#2a2c39' },
+                            textColor: '#d1d4dc',
+                        },
+                        grid: {
+                            vertLines: { color: '#404254' },
+                            horzLines: { color: '#404254' },
+                        },
+                        timeScale: {
+                            timeVisible: true,
+                            secondsVisible: false,
+                        },
                     });
 
                     const candlestickSeries = chart.addCandlestickSeries({
-                        upColor: '#4caf50', downColor: '#f44336',
-                        borderDownColor: '#f44336', borderUpColor: '#4caf50',
-                        wickDownColor: '#f44336', wickUpColor: '#4caf50',
+                        upColor: '#4caf50',
+                        downColor: '#f44336',
+                        borderDownColor: '#f44336',
+                        borderUpColor: '#4caf50',
+                        wickDownColor: '#f44336',
+                        wickUpColor: '#4caf50',
                     });
-                    candlestickSeries.setData(rawData);
+                    candlestickSeries.setData(rawData.map(d => ({
+                        time: d.time,
+                        open: d.open,
+                        high: d.high,
+                        low: d.low,
+                        close: d.close,
+                    })));
 
+                    // Добавим SMA линии для наглядности (опционально)
                     const sma20Line = chart.addLineSeries({ color: '#FFD700', lineWidth: 2, title: 'SMA20' });
                     const sma50Line = chart.addLineSeries({ color: '#00BFFF', lineWidth: 2, title: 'SMA50' });
-                    
-                    const sma20Data = [], sma50Data = [];
+                    const sma20Data = [];
+                    const sma50Data = [];
                     rawData.forEach((d, i) => {
                         if (sma20[i] !== null) sma20Data.push({ time: d.time, value: sma20[i] });
                         if (sma50[i] !== null) sma50Data.push({ time: d.time, value: sma50[i] });
@@ -221,36 +425,64 @@
 
                     chart.timeScale().fitContent();
 
-                    window.addEventListener('resize', () => chart.applyOptions({ width: chartContainer.clientWidth }));
-                } catch (e) {
-                    console.error(e);
-                    document.getElementById('chart').innerHTML = '<div class="error-message">Ошибка при отрисовке графика: ' + e.message + '</div>';
+                    window.addEventListener('resize', () => {
+                        chart.applyOptions({ width: chartContainer.clientWidth });
+                    });
                 }
+                drawChart();
             }
 
             updateIndicatorsPanel();
 
-            // ---------- API Запрос ----------
+            // ---------- Подготовка данных для API ----------
             function buildAnalysisPrompt() {
+                // Берем последние 60 свечей для анализа (чтобы не превысить токены)
                 const recent = rawData.slice(-60);
                 const headers = ['Time', 'Open', 'High', 'Low', 'Close', 'SMA20', 'SMA50', 'RSI', 'MACD', 'Signal', 'Histogram'];
-                let csvRows = [headers.join(',')];
+                let csvRows = [];
+                csvRows.push(headers.join(','));
 
                 recent.forEach((d, idx) => {
                     const globalIdx = rawData.length - 60 + idx;
                     const row = [
                         new Date(d.time * 1000).toISOString().replace('T', ' ').substring(0, 19),
-                        d.open.toFixed(2), d.high.toFixed(2), d.low.toFixed(2), d.close.toFixed(2),
-                        sma20[globalIdx]?.toFixed(2) || '', sma50[globalIdx]?.toFixed(2) || '',
-                        rsi[globalIdx]?.toFixed(2) || '', macd.macdLine[globalIdx]?.toFixed(2) || '',
-                        macd.signalLine[globalIdx]?.toFixed(2) || '', macd.histogram[globalIdx]?.toFixed(2) || ''
+                        d.open.toFixed(2),
+                        d.high.toFixed(2),
+                        d.low.toFixed(2),
+                        d.close.toFixed(2),
+                        sma20[globalIdx]?.toFixed(2) || '',
+                        sma50[globalIdx]?.toFixed(2) || '',
+                        rsi[globalIdx]?.toFixed(2) || '',
+                        macd.macdLine[globalIdx]?.toFixed(2) || '',
+                        macd.signalLine[globalIdx]?.toFixed(2) || '',
+                        macd.histogram[globalIdx]?.toFixed(2) || ''
                     ];
                     csvRows.push(row.join(','));
                 });
 
-                return `Ты профессиональный технический анализер... (остальной текст промпта без изменений для краткости) ...\n\`\`\`csv\n${csvRows.join('\n')}\n\`\`\``;
+                const csvData = csvRows.join('\n');
+
+                const prompt = `
+Ты профессиональный технический анализер рынка фьючерсов. Проанализируй предоставленные часовые данные по инструменту Si-3.26 (фьючерс на доллар/рубль). Данные включают цены open, high, low, close, а также рассчитанные индикаторы: SMA20, SMA50, RSI(14), MACD (линия, сигнальная, гистограмма) за последние 60 часов.
+
+Вот данные в формате CSV:
+\`\`\`csv
+${csvData}
+\`\`\`
+
+Пожалуйста, выполни:
+1. Определи текущий тренд (восходящий, нисходящий, боковой) на основе цен и индикаторов.
+2. Выяви важные уровни поддержки и сопротивления.
+3. Найди графические фигуры (например, голова и плечи, двойное дно/вершина, треугольники, флаги, клинья) и опиши их, если присутствуют.
+4. Оцени сигналы индикаторов: пересечения SMA, уровни RSI (перекупленность/перепроданность), поведение MACD (бычье/медвежье пересечение, расхождение).
+5. Сделай общий вывод о перспективах движения цены и возможных точках входа/выхода.
+
+Ответ оформи в виде структурированного технического отчета с четкими выводами.
+                `;
+                return prompt;
             }
 
+            // ---------- Вызов DeepSeek API через локальный прокси ----------
             document.getElementById('analyzeBtn').addEventListener('click', async function() {
                 const apiKey = document.getElementById('apiKey').value.trim();
                 if (!apiKey) {
@@ -263,34 +495,51 @@
                 loader.style.display = 'inline-block';
                 analysisDiv.innerText = '⏳ Отправка запроса к DeepSeek API через прокси...';
 
+                const prompt = buildAnalysisPrompt();
+
                 try {
+                    // Отправляем запрос на прокси-эндпоинт (относительный путь)
                     const response = await fetch('/api/proxy', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}`
+                            'Authorization': `Bearer ${apiKey}`  // передаём ключ в заголовке
                         },
                         body: JSON.stringify({
                             model: 'deepseek-chat',
                             messages: [
-                                { role: 'system', content: 'Ты опытный трейдер.' },
-                                { role: 'user', content: buildAnalysisPrompt() }
+                                { role: 'system', content: 'Ты опытный трейдер и технический аналитик. Отвечай подробно, профессионально, но понятно.' },
+                                { role: 'user', content: prompt }
                             ],
-                            temperature: 0.3
+                            stream: false,
+                            temperature: 0.3,
+                            max_tokens: 2000
                         })
                     });
 
+                    if (!response.ok) {
+                        let errorText = `HTTP ошибка ${response.status}`;
+                        try {
+                            const errorData = await response.json();
+                            errorText = errorData.error?.message || JSON.stringify(errorData);
+                        } catch (e) {
+                            // если ответ не JSON
+                            errorText = await response.text();
+                        }
+                        throw new Error(errorText);
+                    }
+
                     const data = await response.json();
-                    if (!response.ok) throw new Error(data.error?.message || JSON.stringify(data));
-                    
-                    analysisDiv.innerText = data.choices[0].message.content;
+                    const reply = data.choices[0].message.content;
+                    analysisDiv.innerText = reply;
                 } catch (error) {
-                    console.error(error);
-                    analysisDiv.innerText = `❌ Ошибка: ${error.message}`;
+                    console.error('Детали ошибки:', error);
+                    analysisDiv.innerText = `❌ Ошибка при вызове API: ${error.message}. Подробности в консоли (F12).`;
                 } finally {
                     loader.style.display = 'none';
                 }
             });
+
         })();
     </script>
 </body>
